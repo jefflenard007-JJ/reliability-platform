@@ -1,8 +1,8 @@
 replicaCount: 2
 
 image:
-  # Set by CI: the GitLab container registry path of this project
-  repository: registry.gitlab.com/YOUR_GITLAB_USERNAME/reliability-platform/shop-api
+  # Set by CI: the GitHub Container Registry path of this project
+  repository: ghcr.io/jefflenard007-jj/reliability-platform/shop-api
   tag: latest
   pullPolicy: IfNotPresent
 

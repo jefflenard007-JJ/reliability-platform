@@ -1,11 +1,13 @@
 # Cloud-Native Reliability Platform
 
+[![ci](https://github.com/jefflenard007-JJ/reliability-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/jefflenard007-JJ/reliability-platform/actions/workflows/ci.yml)
+
 A production-style platform for a small orders API (`shop-api`), built to practise platform engineering, observability and SRE: infrastructure as code, GitOps delivery, SLO-based alerting, chaos testing and incident runbooks.
 
 ```mermaid
 flowchart LR
-  dev[Git push] --> ci[GitLab CI<br/>test · build · Trivy scan · validate]
-  ci --> reg[(GitLab Container Registry)]
+  dev[Git push] --> ci[GitHub Actions<br/>test · validate · build · Trivy scan]
+  ci --> reg[(GitHub Container Registry)]
   ci -->|bumps image tag| git[(helm/shop-api/values.yaml)]
   git --> argo[Argo CD]
   argo --> eks[AWS EKS<br/>provisioned by Terraform]
@@ -27,7 +29,7 @@ flowchart LR
 | Kubernetes | `helm/shop-api/` | Helm chart: rolling updates, HPA, PodDisruptionBudget, ServiceMonitor, hardened security context |
 | GitOps | `argocd/` | Argo CD application with automated sync, self-heal and prune |
 | Infrastructure | `terraform/` | AWS VPC and EKS (Sydney region) using the community Terraform modules, spot nodes for cost |
-| CI/CD | `.gitlab-ci.yml` | Lint and test, image build, Trivy vulnerability gate, Helm/Terraform/promtool validation, GitOps tag bump |
+| CI/CD | `.github/workflows/ci.yml` | Lint and test, Helm/Terraform/promtool validation, image build, Trivy vulnerability gate, push to GHCR, GitOps tag bump |
 | Reliability | `chaos/`, `runbooks/`, `postmortems/` | Chaos experiments with stated hypotheses, runbooks per alert, blameless postmortem template |
 
 ## Run it locally (no cloud cost)
