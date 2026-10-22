@@ -28,6 +28,8 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - run: ruff check src tests
       - run: pytest -q
+      - name: Audit Python dependencies for known vulnerabilities
+        run: pip-audit -r requirements.txt
 
   validate:
     runs-on: ubuntu-latest
@@ -63,13 +65,21 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build image
         run: docker build -t "$IMAGE:${GITHUB_SHA::7}" -t "$IMAGE:latest" app
-      - name: Trivy vulnerability gate (HIGH/CRITICAL with a fix available)
+      - name: Trivy vulnerability scan
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGE }}:latest
-          exit-code: "1"
+          format: json
+          output: trivy.json
+          exit-code: "0"
           ignore-unfixed: true
           severity: HIGH,CRITICAL
+      - name: Vulnerability gate (fail on HIGH/CRITICAL with a fix available)
+        run: |
+          jq -r '.Results[]? | .Vulnerabilities[]? | "::error title=\(.Severity) \(.VulnerabilityID)::\(.PkgName) \(.InstalledVersion) -> fix \(.FixedVersion)"' trivy.json | sort -u
+          COUNT=$(jq '[.Results[]? | .Vulnerabilities[]?] | length' trivy.json)
+          echo "Fixable HIGH/CRITICAL vulnerabilities: $COUNT"
+          test "$COUNT" -eq 0
       - name: Push to GitHub Container Registry
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin

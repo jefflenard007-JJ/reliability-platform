@@ -6,6 +6,10 @@ RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+# Patch OS packages and drop build tooling the app doesn't need at runtime (smaller attack surface)
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir --upgrade pip \
+    && (pip uninstall -y setuptools wheel || true)
 RUN useradd --create-home --uid 10001 appuser
 WORKDIR /app
 COPY --from=build /install /usr/local
