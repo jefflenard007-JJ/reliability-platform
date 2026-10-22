@@ -64,7 +64,7 @@ jobs:
       - name: Build image
         run: docker build -t "$IMAGE:${GITHUB_SHA::7}" -t "$IMAGE:latest" app
       - name: Trivy vulnerability gate (HIGH/CRITICAL with a fix available)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ env.IMAGE }}:latest
           exit-code: "1"
