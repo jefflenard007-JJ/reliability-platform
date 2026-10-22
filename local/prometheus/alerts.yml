@@ -1,0 +1,55 @@
+# Multi-window, multi-burn-rate alerts (Google SRE Workbook, chapter 5)
+# Error budget = 1 - 0.995 = 0.005
+#   Fast burn: 14.4x budget over 1h AND 5m  -> 2% of monthly budget gone in 1 hour -> page
+#   Slow burn:  6x budget over 6h AND 30m   -> 5% of monthly budget gone in 6 hours -> ticket
+groups:
+  - name: shop-api-slo-alerts
+    rules:
+      - alert: ShopApiErrorBudgetFastBurn
+        expr: |
+          slo:sli_error:ratio_rate1h > (14.4 * 0.005)
+          and
+          slo:sli_error:ratio_rate5m > (14.4 * 0.005)
+        for: 2m
+        labels:
+          severity: page
+          service: shop-api
+        annotations:
+          summary: "shop-api is burning its error budget fast"
+          description: "Error ratio {{ $value | humanizePercentage }} over 1h exceeds 14.4x the 0.5% budget."
+          runbook_url: "runbooks/high-error-rate.md"
+
+      - alert: ShopApiErrorBudgetSlowBurn
+        expr: |
+          slo:sli_error:ratio_rate6h > (6 * 0.005)
+          and
+          slo:sli_error:ratio_rate30m > (6 * 0.005)
+        for: 15m
+        labels:
+          severity: ticket
+          service: shop-api
+        annotations:
+          summary: "shop-api is steadily consuming its error budget"
+          runbook_url: "runbooks/high-error-rate.md"
+
+      - alert: ShopApiLatencySLOBreach
+        expr: slo:sli_latency_slow:ratio_rate5m > 0.01
+        for: 5m
+        labels:
+          severity: page
+          service: shop-api
+        annotations:
+          summary: "More than 1% of shop-api requests are slower than 300 ms"
+          runbook_url: "runbooks/high-latency.md"
+
+  - name: shop-api-availability
+    rules:
+      - alert: ShopApiDown
+        expr: up{job="shop-api"} == 0
+        for: 1m
+        labels:
+          severity: page
+          service: shop-api
+        annotations:
+          summary: "shop-api scrape target is down"
+          runbook_url: "runbooks/service-down.md"

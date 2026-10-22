@@ -1,0 +1,38 @@
+replicaCount: 2
+
+image:
+  # Set by CI: the GitLab container registry path of this project
+  repository: registry.gitlab.com/YOUR_GITLAB_USERNAME/reliability-platform/shop-api
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+env:
+  CHAOS_ENABLED: "false"
+  LOG_LEVEL: INFO
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+podDisruptionBudget:
+  minAvailable: 1
+
+# Requires the Prometheus Operator CRDs (kube-prometheus-stack)
+serviceMonitor:
+  enabled: true
+  interval: 15s

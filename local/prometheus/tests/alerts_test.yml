@@ -1,0 +1,56 @@
+# Unit tests for the SLO alerts: run with
+#   promtool test rules local/prometheus/tests/alerts_test.yml   (from the repo root)
+rule_files:
+  - ../slo-rules.yml
+  - ../alerts.yml
+
+evaluation_interval: 30s
+
+tests:
+  # 20% of requests fail for 90 minutes -> fast burn must page
+  - interval: 1m
+    input_series:
+      - series: 'http_requests_total{job="shop-api",route="/orders",method="GET",status="200"}'
+        values: '0+80x90'
+      - series: 'http_requests_total{job="shop-api",route="/orders",method="GET",status="500"}'
+        values: '0+20x90'
+    alert_rule_test:
+      - eval_time: 75m
+        alertname: ShopApiErrorBudgetFastBurn
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              service: shop-api
+            exp_annotations:
+              summary: "shop-api is burning its error budget fast"
+              description: "Error ratio 20% over 1h exceeds 14.4x the 0.5% budget."
+              runbook_url: "runbooks/high-error-rate.md"
+
+  # Healthy traffic (0.1% errors) -> no burn-rate alerts
+  - interval: 1m
+    input_series:
+      - series: 'http_requests_total{job="shop-api",route="/orders",method="GET",status="200"}'
+        values: '0+999x90'
+      - series: 'http_requests_total{job="shop-api",route="/orders",method="GET",status="500"}'
+        values: '0+1x90'
+    alert_rule_test:
+      - eval_time: 75m
+        alertname: ShopApiErrorBudgetFastBurn
+        exp_alerts: []
+
+  # Scrape target down -> ShopApiDown pages
+  - interval: 1m
+    input_series:
+      - series: 'up{job="shop-api"}'
+        values: '0x5'
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: ShopApiDown
+        exp_alerts:
+          - exp_labels:
+              severity: page
+              service: shop-api
+              job: shop-api
+            exp_annotations:
+              summary: "shop-api scrape target is down"
+              runbook_url: "runbooks/service-down.md"

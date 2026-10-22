@@ -1,0 +1,6 @@
+apiVersion: v2
+name: shop-api
+description: Orders API with Prometheus metrics, probes, autoscaling and disruption budget
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

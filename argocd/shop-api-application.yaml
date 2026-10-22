@@ -1,0 +1,30 @@
+# GitOps: Argo CD watches this repo and keeps the cluster in sync with helm/shop-api.
+# Apply once:  kubectl apply -n argocd -f argocd/shop-api-application.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: shop-api
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://gitlab.com/YOUR_GITLAB_USERNAME/reliability-platform.git
+    targetRevision: main
+    path: helm/shop-api
+    helm:
+      valueFiles: [values.yaml]
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: shop
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 2m
