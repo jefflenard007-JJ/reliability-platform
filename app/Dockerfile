@@ -6,10 +6,12 @@ RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
-# Patch OS packages and drop build tooling the app doesn't need at runtime (smaller attack surface)
+# Patch OS packages, then remove pip/setuptools/wheel and the bundled ensurepip wheels:
+# the app never installs anything at runtime, so packaging tools are only attack surface.
 RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/* \
-    && pip install --no-cache-dir --upgrade pip \
-    && (pip uninstall -y setuptools wheel || true)
+    && python -m pip uninstall -y pip setuptools wheel \
+    && rm -rf /usr/local/lib/python3.12/ensurepip /usr/local/bin/pip* \
+    && find /usr/local/lib/python3.12 -name "setuptools*" -prune -exec rm -rf {} +
 RUN useradd --create-home --uid 10001 appuser
 WORKDIR /app
 COPY --from=build /install /usr/local
